@@ -33,10 +33,10 @@ float LineCol(Vector2 Origin, const Vector2& ray, Vector2 lineA, Vector2 lineB, 
     return maxDst + 1;
 }
 
-void RenderScreen(const std::vector<Line>& Scene, Vector2 Origin) {
+void RenderScreen(const std::vector<Line>& Scene, Vector2 Origin, float RotationX) {
     for(int x =0; x < W; x++) {
         float Angle = FOV / W * (int)(x - W / 2);
-        Vector2 Ray = Vector2::normal({ sinf(Angle), cosf(Angle) });
+        Vector2 Ray = Vector2::normal({ sinf(Angle + RotationX), cosf(Angle + RotationX) });
 
         float MinDst = MaxDst + 1;
         for(Line line : Scene) {
@@ -48,28 +48,36 @@ void RenderScreen(const std::vector<Line>& Scene, Vector2 Origin) {
         ushort
             ActualDistance = H / (MinDst + 1),
             Middle = (H - ActualDistance) / 2;
+        
         Raylib::DrawLine(x, Middle, x, Middle + ActualDistance, Raylib::WHITE);
     }
 }
 
 int main() {
     std::vector<Line> Scene = {
-        {{-1, 5}, {1, 3}},
+        {{-1, 3}, {1, 3}},
+        {{-1, -3}, {1, -3}},
         {{-1, 5}, {-2, 3}},
     };
     float SpeedMultiplier = 2.56f;
     Vector2 Origin = {0, 0};
+    float RotationX = 0.00f;
     Raylib::SetTraceLogLevel(Raylib::LOG_NONE);
     Raylib::InitWindow(W, H, "RayCaster");
     Raylib::SetTargetFPS(60);
     while(!Raylib::WindowShouldClose()) {
         Raylib::BeginDrawing();
         Raylib::ClearBackground(Raylib::BLACK);
-        RenderScreen(Scene, Origin);
+        RenderScreen(Scene, Origin, RotationX);
         Raylib::EndDrawing();
-        if(Raylib::IsKeyDown(Raylib::KEY_W)) Origin.y += Raylib::GetFrameTime() * SpeedMultiplier;
-        if(Raylib::IsKeyDown(Raylib::KEY_S)) Origin.y -= Raylib::GetFrameTime() * SpeedMultiplier;
-        if(Raylib::IsKeyDown(Raylib::KEY_D)) Origin.x += Raylib::GetFrameTime() * SpeedMultiplier;
-        if(Raylib::IsKeyDown(Raylib::KEY_A)) Origin.x -= Raylib::GetFrameTime() * SpeedMultiplier;
+        if(Raylib::IsKeyDown(Raylib::KEY_W))
+            Origin += (Vector2){sinf(RotationX), cosf(RotationX)} * (Raylib::GetFrameTime() * SpeedMultiplier);
+        if(Raylib::IsKeyDown(Raylib::KEY_S))
+            Origin += (Vector2){-sinf(RotationX), -cosf(RotationX)} * (Raylib::GetFrameTime() * SpeedMultiplier);
+        if(Raylib::IsKeyDown(Raylib::KEY_D))
+            Origin += (Vector2){cosf(RotationX), -sinf(RotationX)} * (Raylib::GetFrameTime() * SpeedMultiplier);
+        if(Raylib::IsKeyDown(Raylib::KEY_A))
+            Origin += (Vector2){-cosf(RotationX), sinf(RotationX)} * (Raylib::GetFrameTime() * SpeedMultiplier);
+        if(Raylib::IsKeyDown(Raylib::KEY_SPACE)) RotationX -= Raylib::GetFrameTime() * SpeedMultiplier;
     }
 }
