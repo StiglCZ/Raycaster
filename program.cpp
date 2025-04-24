@@ -20,16 +20,43 @@ void Export(u8* Data, std::string FileName) {
     ofs.close();
 }
 
-float LineCol(Vector2 Origin, const Vector2& ray, Vector2 lineA, Vector2 lineB, float maxDst = 100) {
+std::vector<Vector2> points;
+void DebugWindow(const std::vector<Line>& Scene, Vector2 origin, float RotationX) {
+    for(Line line : Scene) {
+        Raylib::DrawLine(line.a.x * 20 + 100,
+                         line.a.y * 20 + 100,
+                         line.b.x * 20 + 100,
+                         line.b.y * 20 + 100, Raylib::WHITE);
+    }
+
+    for(Vector2 point : points) {
+        float rad = 3;
+        Vector2 middle = {point.x * 20 + 100, point.y * 20 + 100};
+        Raylib::DrawLine(middle.x - rad, middle.y - rad, middle.x + rad, middle.y + rad, Raylib::RED);
+        Raylib::DrawLine(middle.x - rad, middle.y + rad, middle.x + rad, middle.y - rad, Raylib::RED);
+    }
+    origin = origin * 20 + 100;
+    Raylib::DrawCircle(origin.x, origin.y, 5, Raylib::BLUE);
+    Vector2 Ray1 = Vector2::normal({ cosf(RotationX - FOV / 2), sinf(RotationX - FOV / 2) }) * 300;
+    Vector2 Ray2 = Vector2::normal({ cosf(RotationX + FOV / 2), sinf(RotationX + FOV / 2) }) * 300;
+    Raylib::DrawLine(origin.x, origin.y, origin.x + Ray1.x, origin.y - Ray1.y, Raylib::BLUE);
+    Raylib::DrawLine(origin.x, origin.y, origin.x - Ray2.x, origin.y + Ray2.y, Raylib::BLUE);
+    
+    points.clear();
+}
+
+float LineCol(Vector2 Origin, Vector2 ray, Line line, float maxDst) {
     float x1 = Origin.x, y1 = Origin.y;
     float x2 = ray.x * maxDst, y2 = ray.y * maxDst;
-    float x3 = lineA.x, y3 = lineA.y;
-    float x4 = lineB.x, y4 = lineB.y;
+    float x3 = line.a.x, y3 = line.a.y;
+    float x4 = line.b.x, y4 = line.b.y;
 
     float uA = ((x4-x3)*(y1-y3)-(y4-y3)*(x1-x3))/((y4-y3)*(x2-x1)-(x4-x3)*(y2-y1));
     float uB = ((x2-x1)*(y1-y3)-(y2-y1)*(x1-x3))/((y4-y3)*(x2-x1)-(x4-x3)*(y2-y1));
-    if(uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1)
+    if(uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
+        points.push_back((Vector2){x1 + uA * (x2 - x1), y1 + uA * (y2 - y1)});
         return (Vector2){uA * (x2 - x1), uA * (y2 - y1)}.mag();
+    }
     return maxDst + 1;
 }
 
@@ -40,7 +67,8 @@ void RenderScreen(const std::vector<Line>& Scene, Vector2 Origin, float Rotation
 
         float MinDst = MaxDst + 1;
         for(Line line : Scene) {
-            float dst = LineCol(Origin, Ray, line.a, line.b, MaxDst);
+            float dst = LineCol(Origin, Ray, line, MaxDst);
+            dst = dst * cosf(Angle);
             if(dst < MinDst) MinDst = dst;
         }
         
@@ -68,6 +96,7 @@ int main() {
     while(!Raylib::WindowShouldClose()) {
         Raylib::BeginDrawing();
         Raylib::ClearBackground(Raylib::BLACK);
+        DebugWindow(Scene, Origin, RotationX);
         RenderScreen(Scene, Origin, RotationX);
         Raylib::EndDrawing();
         if(Raylib::IsKeyDown(Raylib::KEY_W))
